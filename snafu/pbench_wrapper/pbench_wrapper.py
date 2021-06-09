@@ -59,4 +59,4 @@ class pbench_wrapper:
 
     def run(self):
         pbench_wrapper_obj = Trigger_pbench(self.args)
-        yield pbench_wrapper_obj
+        pbench_wrapper_obj.run_benchmark()
