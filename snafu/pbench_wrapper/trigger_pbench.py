@@ -1,4 +1,6 @@
 import os
+import json
+import platform
 import re
 import subprocess
 from datetime import datetime
@@ -14,12 +16,29 @@ class Trigger_pbench:
         self.samples = args.samples
         self.create_local = args.create_local
 
-    def _register_tools(self):
+    def _load_host_info(self):
         pass
+
+    def _check_local(self, host_tool_dict):
+        if not self.create_local:
+            return 1
+
+        for host in host_tool_dict.keys():
+            if not host == platform.node() or host == "localhost":
+                logger.error(f"Please only use host '{platform.node()}' or 'localhost' with create_local option")
+                return 0
+        return 1
+
+    def _register_tools(self):
+        host_tool_dict = json.load(self.tool_dict_path)
+        if not self._check_local(host_tool_dict):
+            logger.critical("'Create local' mode selected, but remote hosts specified")
+            exit(1)
+        pass        
 
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
-            logger.critical("Workload file %s not found" % self.workload)
+            logger.critical("Tool mapping file %s not found" % self.tool_dict_path)
             exit(1)
 
         self._register_tools() #Add logic to check if remotes are used with create-local (illegal)
