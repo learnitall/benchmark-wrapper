@@ -31,7 +31,6 @@ class pbench_wrapper:
             const=True,
             default=False,
             help="If true, creates local tm/tds",
-            required=True,
         )
         parser.add_argument(
             "-T",
@@ -54,6 +53,19 @@ class pbench_wrapper:
             required=True,
             default=1,
             help="Number of benchmark iterations",
+        )
+        #Make conditionally dependent? (tds and redis)
+        parser.add_argument(
+            "-R",
+            "--redis-server",
+            default=None,
+            help="Redis 'host:port' or 'host' with default port 17001",
+        )
+        parser.add_argument(
+            "-D",
+            "--tool-data-sink",
+            default=None,
+            help="Tool-data-sink 'host'",
         )
         self.args = parser_object.parse_args()
 

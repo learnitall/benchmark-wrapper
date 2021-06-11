@@ -15,16 +15,29 @@ class Trigger_pbench:
         self.iterations = args.iterations
         self.samples = args.samples
         self.create_local = args.create_local
+        self.redis = args.redis_server
+        self.tds = args.tool_data_sink
 
     def _load_host_info(self):
         pass
+
+    def _check_redis_tds(self):
+        if self.create_local:
+            return 1
+
+        if not self.redis or not self.tds:
+            logger.error("The '--redis-server' and '--tool-data-sink' options are required if '--create-local' is not set to true")
+            return 0
+
+        #Add checking for valid hosts(?) - to be experimented with
+        return 1
 
     def _check_local(self, host_tool_dict):
         if not self.create_local:
             return 1
 
         for host in host_tool_dict.keys():
-            if not host == platform.node() or host == "localhost":
+            if not host == platform.node() and not host == "localhost":
                 logger.error(f"Please only use host '{platform.node()}' or 'localhost' with create_local option")
                 return 0
         return 1
@@ -42,16 +55,37 @@ class Trigger_pbench:
                 args[1] = f"--name={tool}"
                 subprocess.run(args)   
 
+    def _benchmark_startup(self):
+        args = [
+            "pbench-tool-meister-start",
+            "--sysinfo=default"
+        ]
+        if self.create_local:
+            args.append("--orchestrate=create")
+        else:
+            args.extend(["--orchestrate=existing", f"--redis-server={self.redis}", f"--tool-data-sink={self.tds}"])
+        args.append("default")
+        subprocess.run(args)
+
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
             logger.critical("Tool mapping file %s not found" % self.tool_dict_path)
             exit(1)
 
+        #Until conditional independence is added:
+        if not self._check_redis_tds():
+            logger.critical("One or more of --redis-server, --tool-data-sink is missing or invalid")
+            exit(1)
+
         self._register_tools()
 
-        #CREATE BENCHMARK RUN DIR HERE + other setup
+        #CREATE NEW BENCHMARK RUN DIR HERE + other setup (if wanted)
+        # FIXME - Get these env vars to persist
+        os.environ["script"] = "pbench"
+        os.environ["config"] = "wrapper-run"
+        os.environ["pbench_run_dir"] = "/var/lib/pbench-agent"
 
-        #INSERT TM START CALL HERE (including whether or not to start other things)
+        self._benchmark_startup()
 
         for i in range(1, self.iterations + 1):
             #HANDLE NEW ITERATIONS HERE
@@ -62,3 +96,4 @@ class Trigger_pbench:
 
         #INSERT TM STOP CALL HERE
         
+        subprocess.run("pbench-clear-tools")
