@@ -60,3 +60,5 @@ class pbench_wrapper:
     def run(self):
         pbench_wrapper_obj = Trigger_pbench(self.args)
         pbench_wrapper_obj.run_benchmark()
+        #TEMPORARY UNTIL WE DECIDE HOW TO PUBLISH DATA
+        return ["pbench"]
