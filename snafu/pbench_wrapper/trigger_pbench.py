@@ -34,14 +34,20 @@ class Trigger_pbench:
         if not self._check_local(host_tool_dict):
             logger.critical("'Create local' mode selected, but remote hosts specified")
             exit(1)
-        pass        
+        for host in host_tool_dict.keys():
+            args = ["pbench-register-tool", ""]
+            if not host == "localhost" and not host == platform.node():
+                args.append(f"--remote={host}")
+            for tool in host_tool_dict[host]:        
+                args[1] = tool
+                subprocess.run(args)   
 
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
             logger.critical("Tool mapping file %s not found" % self.tool_dict_path)
             exit(1)
 
-        self._register_tools() #Add logic to check if remotes are used with create-local (illegal)
+        self._register_tools()
 
         #CREATE BENCHMARK RUN DIR HERE + other setup
 
