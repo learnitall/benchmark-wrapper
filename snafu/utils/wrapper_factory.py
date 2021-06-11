@@ -19,6 +19,7 @@ from snafu.image_pull_wrapper.image_pull_wrapper import image_pull_wrapper
 from snafu.sysbench.sysbench_wrapper import sysbench_wrapper
 from snafu.dns_perf_wrapper.dns_perf_wrapper import dns_perf_wrapper
 from snafu.registry import TOOLS
+from snafu.pbench_wrapper.pbench_wrapper import pbench_wrapper
 
 import logging
 
@@ -45,6 +46,7 @@ wrapper_dict = {
     "image_pull": image_pull_wrapper,
     "sysbench": sysbench_wrapper,
     "dns_perf": dns_perf_wrapper,
+    "pbench": pbench_wrapper,
 }
 
 
