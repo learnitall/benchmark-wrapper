@@ -30,7 +30,7 @@ class Trigger_pbench:
         return 1
 
     def _register_tools(self):
-        host_tool_dict = json.load(self.tool_dict_path)
+        host_tool_dict = json.load(open(self.tool_dict_path))
         if not self._check_local(host_tool_dict):
             logger.critical("'Create local' mode selected, but remote hosts specified")
             exit(1)
@@ -39,7 +39,7 @@ class Trigger_pbench:
             if not host == "localhost" and not host == platform.node():
                 args.append(f"--remote={host}")
             for tool in host_tool_dict[host]:        
-                args[1] = tool
+                args[1] = f"--name={tool}"
                 subprocess.run(args)   
 
     def run_benchmark(self):
