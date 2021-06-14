@@ -54,7 +54,15 @@ class pbench_wrapper:
             default=1,
             help="Number of benchmark iterations",
         )
-        #Make conditionally dependent? (tds and redis)
+        parser.add_argument(
+            "-l",
+            "--sample-length",
+            type=int,
+            required=True,
+            default=20,
+            help="Length (time) of collection for each sample",
+        )
+        # Make conditionally dependent? (tds and redis)
         parser.add_argument(
             "-R",
             "--redis-server",
@@ -62,15 +70,12 @@ class pbench_wrapper:
             help="Redis 'host:port' or 'host' with default port 17001",
         )
         parser.add_argument(
-            "-D",
-            "--tool-data-sink",
-            default=None,
-            help="Tool-data-sink 'host'",
+            "-D", "--tool-data-sink", default=None, help="Tool-data-sink 'host'",
         )
         self.args = parser_object.parse_args()
 
     def run(self):
         pbench_wrapper_obj = Trigger_pbench(self.args)
         pbench_wrapper_obj.run_benchmark()
-        #TEMPORARY UNTIL WE DECIDE HOW TO PUBLISH DATA
+        # TEMPORARY UNTIL WE DECIDE HOW TO PUBLISH DATA
         return ["pbench"]

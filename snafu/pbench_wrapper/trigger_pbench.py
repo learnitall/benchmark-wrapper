@@ -5,6 +5,7 @@ import re
 import subprocess
 from datetime import datetime
 import logging
+from time import sleep
 
 logger = logging.getLogger("snafu")
 
@@ -17,6 +18,7 @@ class Trigger_pbench:
         self.create_local = args.create_local
         self.redis = args.redis_server
         self.tds = args.tool_data_sink
+        self.sample_length = args.sample_length
 
     def _cleanup_tools(self):
         subprocess.run("pbench-clear-tools")
@@ -75,6 +77,10 @@ class Trigger_pbench:
         args.append("default")
         subprocess.run(args, env=os.environ)
 
+    def _benchmark_shutdown(self):
+        args = ["pbench-tool-meister-stop", "--sysinfo=default", "default"]
+        subprocess.run(args, env=os.environ)
+
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
             logger.critical("Tool mapping file %s not found" % self.tool_dict_path)
@@ -93,14 +99,14 @@ class Trigger_pbench:
         os.environ["script"] = "pbench"
         os.environ["config"] = "wrapper-run"
         os.environ["pbench_run"] = "/var/lib/pbench-agent"
-        os.environ["pbench_log"]=os.environ["pbench_run"] + "/pbench.log"
+        os.environ["pbench_log"] = os.environ["pbench_run"] + "/pbench.log"
         os.environ["_pbench_hostname"] = os.environ[
             "_pbench_full_hostname"
         ] = platform.node()
         os.environ["pbench_install_dir"] = "/opt/pbench-agent"
         os.environ[
             "benchmark_run_dir"
-        ] = f"{os.environ['pbench_run']}/{os.environ['script']}_{os.environ['config']}_{datetime.now().strftime('%m-%d-%Y-%H-%M-%S')}"
+        ] = f"{os.environ['pbench_run']}/{os.environ['script']}_{os.environ['config']}_{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}"
 
         try:
             os.mkdir(os.environ["benchmark_run_dir"])
@@ -111,15 +117,20 @@ class Trigger_pbench:
             self._cleanup_tools()
             exit(1)
 
+        # ADD ERROR CHECKING?
         self._benchmark_startup()
 
         for i in range(1, self.iterations + 1):
             # HANDLE NEW ITERATIONS HERE
             for s in range(1, self.samples + 1):
                 # HANDLE NEW SAMPLES HERE
-                logger.info(i + s)
+                logger.info(
+                    f"Beginning {self.sample_length}s sample {self.samples} of iteration {self.iterations}"
+                )
+                sleep(self.sample_length)
         # COLLECT TRANSIENT DATA HERE (SEND RESULTS)
 
-        # INSERT TM STOP CALL HERE
+        # ADD ERROR CHECKING?
+        self._benchmark_shutdown()
 
         self._cleanup_tools()
