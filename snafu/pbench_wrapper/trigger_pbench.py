@@ -20,7 +20,9 @@ class Trigger_pbench:
         self.tds = args.tool_data_sink
         self.sample_length = args.sample_length
 
-    def _cleanup_tools(self):
+    def _cleanup_tools(self, message=None):
+        if message:
+            logger.critical(message)
         subprocess.run("pbench-clear-tools")
 
     def _check_redis_tds(self):
@@ -81,6 +83,24 @@ class Trigger_pbench:
         args = ["pbench-tool-meister-stop", "--sysinfo=default", "default"]
         subprocess.run(args, env=os.environ)
 
+    def _dir_creator(self, dir, purpose):
+        try:
+            os.mkdir(dir)
+        except FileExistsError:
+            self._cleanup_tools(f"{purpose} '{dir}' already exists")
+            exit(1)
+
+    def _start_stop_sender(self, method, dir):
+        acceptable = ["start", "stop", "send"]
+        if method not in acceptable:
+            self._cleanup_tools(
+                f"Unkown method '{method}', must be one of: [start, stop, send]"
+            )
+            exit(1)
+
+        args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
+        subprocess.run(args)
+
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
             logger.critical("Tool mapping file %s not found" % self.tool_dict_path)
@@ -93,6 +113,7 @@ class Trigger_pbench:
             )
             exit(1)
 
+        # ADD ERROR CHECKING? (maybe around subprocess calls?)
         self._register_tools()
 
         # CREATE NEW BENCHMARK RUN DIR HERE + other setup (if wanted)
@@ -108,27 +129,27 @@ class Trigger_pbench:
             "benchmark_run_dir"
         ] = f"{os.environ['pbench_run']}/{os.environ['script']}_{os.environ['config']}_{datetime.now().strftime('%m-%d-%Y_%H-%M-%S')}"
 
-        try:
-            os.mkdir(os.environ["benchmark_run_dir"])
-        except FileExistsError:
-            logger.critical(
-                f"Benchmark-run-dir '{os.environ['benchmark_run_dir']}' already exists"
-            )
-            self._cleanup_tools()
-            exit(1)
+        self._dir_creator(os.environ["benchmark_run_dir"], "benchmark-run-dir")
 
         # ADD ERROR CHECKING?
         self._benchmark_startup()
 
         for i in range(1, self.iterations + 1):
-            # HANDLE NEW ITERATIONS HERE
+            iter_dir = os.environ["benchmark_run_dir"] + f"/iter-{i}"
+            self._dir_creator(iter_dir, "iteration dir")
             for s in range(1, self.samples + 1):
-                # HANDLE NEW SAMPLES HERE
+                sample_dir = iter_dir + f"/sample-{s}"
+                self._dir_creator(sample_dir, "sample dir")
                 logger.info(
-                    f"Beginning {self.sample_length}s sample {self.samples} of iteration {self.iterations}"
+                    f"Beginning {self.sample_length}s sample {s} of iteration {i}"
                 )
+                self._start_stop_sender("start", sample_dir)
                 sleep(self.sample_length)
-        # COLLECT TRANSIENT DATA HERE (SEND RESULTS)
+                self._start_stop_sender("stop", sample_dir)
+
+                # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
+                logger.info(f"Sending data for sample {s} of iteration {i}")
+                self._start_stop_sender("send", sample_dir)
 
         # ADD ERROR CHECKING?
         self._benchmark_shutdown()
