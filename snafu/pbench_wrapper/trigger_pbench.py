@@ -19,11 +19,27 @@ class Trigger_pbench:
         self.redis = args.redis_server
         self.tds = args.tool_data_sink
         self.sample_length = args.sample_length
+        self.registered = False
 
     def _cleanup_tools(self, message=None):
         if message:
             logger.critical(message)
-        subprocess.run("pbench-clear-tools")
+        if self.registered:
+            try:
+                subprocess.run("pbench-clear-tools")
+            except Exception as e:
+                logger.critical(f"When attempting to clear tools, hit exception: {e}")
+                exit(1)
+
+    def _run_process(self, args, env_vars=None):
+        try:
+            if env_vars:
+                subprocess.run(args, env=env_vars)
+            else:
+                subprocess.run(args)
+        except Exception as e:
+            self._cleanup_tools(f"Failure to run process: {e}")
+            exit(1)
 
     def _check_redis_tds(self):
         if self.create_local:
@@ -61,10 +77,11 @@ class Trigger_pbench:
                 args.append(f"--remote={host}")
             for tool in host_tool_dict[host]:
                 args[1] = f"--name={tool}"
-                subprocess.run(args)
+                self._run_process(args)
+        self.registered = True
 
     def _benchmark_startup(self):
-        args = ["pbench-tool-meister-start", "--sysinfo=default"]
+        args = ["pbench-tool-meister-start"] #, "--sysinfo=default"] (CHECK WITH PETER)
         if self.create_local:
             os.environ["pbench_tmp"] = os.environ["pbench_run"] + "/tmp"
             args.append("--orchestrate=create")
@@ -77,11 +94,11 @@ class Trigger_pbench:
                 ]
             )
         args.append("default")
-        subprocess.run(args, env=os.environ)
+        self._run_process(args, env_vars=os.environ)
 
     def _benchmark_shutdown(self):
         args = ["pbench-tool-meister-stop", "--sysinfo=default", "default"]
-        subprocess.run(args, env=os.environ)
+        self._run_process(args, env_vars=os.environ)
 
     def _dir_creator(self, dir, purpose):
         try:
@@ -99,7 +116,7 @@ class Trigger_pbench:
             exit(1)
 
         args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
-        subprocess.run(args)
+        self._run_process(args)
 
     def run_benchmark(self):
         if not os.path.exists(self.tool_dict_path):
@@ -113,7 +130,6 @@ class Trigger_pbench:
             )
             exit(1)
 
-        # ADD ERROR CHECKING? (maybe around subprocess calls?)
         self._register_tools()
 
         # CREATE NEW BENCHMARK RUN DIR HERE + other setup (if wanted)
@@ -131,7 +147,6 @@ class Trigger_pbench:
 
         self._dir_creator(os.environ["benchmark_run_dir"], "benchmark-run-dir")
 
-        # ADD ERROR CHECKING?
         self._benchmark_startup()
 
         for i in range(1, self.iterations + 1):
@@ -151,7 +166,6 @@ class Trigger_pbench:
                 logger.info(f"Sending data for sample {s} of iteration {i}")
                 self._start_stop_sender("send", sample_dir)
 
-        # ADD ERROR CHECKING?
         self._benchmark_shutdown()
 
         self._cleanup_tools()
