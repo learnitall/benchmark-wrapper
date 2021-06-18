@@ -45,6 +45,7 @@ class Pbench(Benchmark):
         ConfigArgument(
             "-T",
             "--tool-dict",
+            dest="tool_dict_path",
             help="Location of json containing host/tool mapping for data collection",
             required=True,
         ),
@@ -105,7 +106,7 @@ class Pbench(Benchmark):
             exit(1)
 
     def _check_redis_tds(self):
-        if self.create_local:
+        if self.config.create_local:
             return 1
 
         if not self.redis or not self.tds:
@@ -118,7 +119,7 @@ class Pbench(Benchmark):
         return 1
 
     def _check_local(self, host_tool_dict):
-        if not self.create_local:
+        if not self.config.create_local:
             return 1
 
         for host in host_tool_dict.keys():
@@ -130,7 +131,7 @@ class Pbench(Benchmark):
         return 1
 
     def _register_tools(self):
-        host_tool_dict = json.load(open(self.tool_dict_path))
+        host_tool_dict = json.load(open(self.config.tool_dict_path))
         if not self._check_local(host_tool_dict):
             self.logger.critical("'Create local' mode selected, but remote hosts specified")
             exit(1)
@@ -145,7 +146,7 @@ class Pbench(Benchmark):
 
     def _benchmark_startup(self):
         args = ["pbench-tool-meister-start"] #, "--sysinfo=default"] (CHECK WITH PETER)
-        if self.create_local:
+        if self.config.create_local:
             os.environ["pbench_tmp"] = os.environ["pbench_run"] + "/tmp"
             args.append("--orchestrate=create")
         else:
@@ -225,17 +226,17 @@ class Pbench(Benchmark):
 
         self._benchmark_startup()
 
-        for i in range(1, self.iterations + 1):
+        for i in range(1, self.config.iterations + 1):
             iter_dir = os.environ["benchmark_run_dir"] + f"/iter-{i}"
             self._dir_creator(iter_dir, "iteration dir")
-            for s in range(1, self.samples + 1):
+            for s in range(1, self.config.samples + 1):
                 sample_dir = iter_dir + f"/sample-{s}"
                 self._dir_creator(sample_dir, "sample dir")
                 self.logger.info(
-                    f"Beginning {self.sample_length}s sample {s} of iteration {i}"
+                    f"Beginning {self.config.sample_length}s sample {s} of iteration {i}"
                 )
                 self._start_stop_sender("start", sample_dir)
-                sleep(self.sample_length)
+                sleep(self.config.sample_length)
                 self._start_stop_sender("stop", sample_dir)
 
                 # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
@@ -245,3 +246,5 @@ class Pbench(Benchmark):
         self._benchmark_shutdown()
 
         self._cleanup_tools()
+
+        return ["pbench"]
