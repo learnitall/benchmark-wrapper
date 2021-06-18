@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from typing import Iterable, List, Tuple, TypedDict
+from typing import Iterable, List, Tuple
 import os
 import json
 import platform
@@ -26,7 +26,7 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
-class Uperf(Benchmark):
+class Pbench(Benchmark):
     """
     Wrapper for the pbench benchmark.
     """
