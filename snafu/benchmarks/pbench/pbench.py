@@ -96,6 +96,7 @@ class Pbench(Benchmark):
                 exit(1)
 
     def _run_process(self, args, env_vars=None):
+        """
         try:
             if env_vars:
                 subprocess.run(args, env=env_vars)
@@ -103,6 +104,15 @@ class Pbench(Benchmark):
                 subprocess.run(args)
         except Exception as e:
             self._cleanup_tools(f"Failure to run process: {e}")
+            exit(1)
+        """
+        if env_vars:
+            process : ProcessSample = sample_process(args, self.logger, shell=False, env=env_vars)
+        else:
+            process : ProcessSample = sample_process(args, self.logger, shell=False)
+
+        if not process.success:
+            self._cleanup_tools(f"Failure to run process: {args[0]}")
             exit(1)
 
     def _check_redis_tds(self):
