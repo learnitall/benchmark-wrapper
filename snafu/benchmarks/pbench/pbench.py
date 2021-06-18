@@ -89,23 +89,16 @@ class Pbench(Benchmark):
         if message:
             self.logger.critical(message)
         if self.registered:
-            try:
-                subprocess.run("pbench-clear-tools")
-            except Exception as e:
-                self.logger.critical(f"When attempting to clear tools, hit exception: {e}")
+            process : ProcessSample = sample_process("pbench-clear-tools", self.logger)
+            if not process.success:
+                self.logger.critical(f"When attempting to clear tools, process failed")
                 exit(1)
+            else:
+                logs = process.successful.stderr.split("\n")
+                for log in logs:
+                    self.logger.info(log)
 
     def _run_process(self, args, env_vars=None):
-        """
-        try:
-            if env_vars:
-                subprocess.run(args, env=env_vars)
-            else:
-                subprocess.run(args)
-        except Exception as e:
-            self._cleanup_tools(f"Failure to run process: {e}")
-            exit(1)
-        """
         if env_vars:
             process : ProcessSample = sample_process(args, self.logger, shell=False, env=env_vars)
         else:
@@ -114,6 +107,9 @@ class Pbench(Benchmark):
         if not process.success:
             self._cleanup_tools(f"Failure to run process: {args[0]}")
             exit(1)
+        else:
+            if process.successful.stdout:
+                self.logger.info(process.successful.stdout)
 
     def _check_redis_tds(self):
         if self.config.create_local:
