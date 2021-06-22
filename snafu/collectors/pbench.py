@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from typing import Iterable
+import logging
 import os
 import json
 import platform
-
-# TO REMOVE EVENTUALLY
 import argparse
-
+from configparser import ConfigParser
 from datetime import datetime
 from time import sleep
-from snafu.benchmarks import Benchmark, BenchmarkResult
-from snafu.config import ConfigArgument, FuncAction, check_file
+from snafu.config import check_file
 from snafu.process import sample_process, ProcessSample
 
 
@@ -26,64 +23,47 @@ def str2bool(v):
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
-class Pbench(Benchmark):
-    """
-    Wrapper for the pbench benchmark.
-    """
-
+class Pbench:
     tool_name = "pbench"
-    args = (
-        ConfigArgument(
-            "-C",
-            "--create-local",
-            type=str2bool,
-            nargs="?",
-            const=True,
-            default=False,
-            help="If true, creates local tm/tds",
-        ),
-        ConfigArgument(
-            "-T",
-            "--tool-dict",
-            dest="tool_dict_path",
-            help="Location of json containing host/tool mapping for data collection",
-            required=True,
-        ),
-        ConfigArgument(
-            "-s",
-            "--samples",
-            type=int,
-            required=True,
-            default=1,
-            help="Number of benchmark samples (per iteration)",
-        ),
-        ConfigArgument(
-            "-i",
-            "--iterations",
-            type=int,
-            required=True,
-            default=1,
-            help="Number of benchmark iterations",
-        ),
-        ConfigArgument(
-            "-l",
-            "--sample-length",
-            type=int,
-            required=True,
-            default=20,
-            help="Length (time) of collection for each sample",
-        ),
-        # Make conditionally dependent? (tds and redis)
-        ConfigArgument(
-            "-R",
-            "--redis-server",
-            default=None,
-            help="Redis 'host:port' or 'host' with default port 17001",
-        ),
-        ConfigArgument(
-            "-D", "--tool-data-sink", default=None, help="Tool-data-sink 'host'",
-        ),
-    )
+
+    def __init__(self, config_file):
+        self.logger = logging.getLogger("snafu").getChild(self.tool_name)
+        if not check_file(config_file):
+            self.logger.critical(
+                f"Pbench config file '{config_file}' not found or unreadable"
+            )
+            exit(1)
+        config = ConfigParser()
+        config.read(config_file)
+        self.iterations = config.getint(
+            section="BASICS", option="iterations", fallback=1
+        )
+        self.samples = config.getint(section="BASICS", option="samples", fallback=1)
+        self.sample_length = config.getint(
+            section="BASICS", option="sample_length", fallback=20
+        )
+        try:
+            self.create_local = str2bool(
+                config.get(section="CREATE", option="create_local", fallback="false")
+            )
+        except Exception as e:
+            self.logger.critical(
+                f"Invalid create_local option under CREATE section: {e}"
+            )
+            exit(1)
+        self.tool_dict_path = config.get(section="PATHS", option="host_tool_mapping", fallback=None)
+        if not self.tool_dict_path:
+            self.logger.critical(
+                "No host_tool_mapping option specified under PATHS section"
+            )
+            exit(1)
+        if not check_file(self.tool_dict_path):
+            self.logger.critical(
+                f"Tool mapping file '{self.tool_dict_path}' not found or unreadable"
+            )
+            exit(1)
+        self.redis = config.get(section="CREATE", option="redis", fallback=None)
+        self.tds = config.get(section="CREATE", option="tool_data_sink", fallback=None)
 
     def _cleanup_tools(self, message=None):
         if message:
@@ -114,12 +94,12 @@ class Pbench(Benchmark):
                 self.logger.info(process.successful.stdout)
 
     def _check_redis_tds(self):
-        if self.config.create_local:
+        if self.create_local:
             return 1
 
-        if not self.config.redis_server or not self.config.tool_data_sink:
+        if not self.redis or not self.tds:
             self.logger.error(
-                "The '--redis-server' and '--tool-data-sink' options are required if '--create-local' is not set to true"
+                "The 'redis' and 'tool_data_sink' options are required if '--create_local' is not set to true under CREATE"
             )
             return 0
 
@@ -127,7 +107,7 @@ class Pbench(Benchmark):
         return 1
 
     def _check_local(self, host_tool_dict):
-        if not self.config.create_local:
+        if not self.create_local:
             return 1
 
         for host in host_tool_dict.keys():
@@ -139,7 +119,7 @@ class Pbench(Benchmark):
         return 1
 
     def _register_tools(self):
-        host_tool_dict = json.load(open(self.config.tool_dict_path))
+        host_tool_dict = json.load(open(self.tool_dict_path))
         if not self._check_local(host_tool_dict):
             self.logger.critical(
                 "'Create local' mode selected, but remote hosts specified"
@@ -158,7 +138,7 @@ class Pbench(Benchmark):
         args = [
             "pbench-tool-meister-start"
         ]  # , "--sysinfo=default"] (CHECK WITH PETER)
-        if self.config.create_local:
+        if self.create_local:
             os.environ["pbench_tmp"] = os.environ["pbench_run"] + "/tmp"
             args.append("--orchestrate=create")
         else:
@@ -194,30 +174,10 @@ class Pbench(Benchmark):
         args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
         self._run_process(args)
 
-    def setup(self) -> bool:
-        """Parse config and check that tool mapping file exists."""
-        self.config.parse_args()
-        self.logger.debug(f"Got config: {vars(self.config)}")
-
-        if not check_file(self.config.tool_dict_path):
-            self.logger.critical(
-                f"Tool mapping file '{self.config.tool_dict_path}' not found or unreadable"
-            )
-            return False
-
-        return True
-
-    def run(self) -> Iterable[BenchmarkResult]:
-
-        self.logger.info("Running setup tasks.")
-        if not self.setup():
-            self.logger.critical(f"Something went wrong during setup, refusing to run.")
-            exit(1)
-
-        # Until conditional independence is added:
+    def run(self):
         if not self._check_redis_tds():
             self.logger.critical(
-                "One or more of --redis-server, --tool-data-sink is missing or invalid"
+                "One or more of redis-server, tool-data-sink specification is missing or invalid for pbench config"
             )
             exit(1)
 
@@ -240,17 +200,17 @@ class Pbench(Benchmark):
 
         self._benchmark_startup()
 
-        for i in range(1, self.config.iterations + 1):
+        for i in range(1, self.iterations + 1):
             iter_dir = os.environ["benchmark_run_dir"] + f"/iter-{i}"
             self._dir_creator(iter_dir, "iteration dir")
-            for s in range(1, self.config.samples + 1):
+            for s in range(1, self.samples + 1):
                 sample_dir = iter_dir + f"/sample-{s}"
                 self._dir_creator(sample_dir, "sample dir")
                 self.logger.info(
-                    f"Beginning {self.config.sample_length}s sample {s} of iteration {i}"
+                    f"Beginning {self.sample_length}s sample {s} of iteration {i}"
                 )
                 self._start_stop_sender("start", sample_dir)
-                sleep(self.config.sample_length)
+                sleep(self.sample_length)
                 self._start_stop_sender("stop", sample_dir)
 
                 # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
@@ -260,5 +220,3 @@ class Pbench(Benchmark):
         self._benchmark_shutdown()
 
         self._cleanup_tools()
-
-        return ["pbench"]

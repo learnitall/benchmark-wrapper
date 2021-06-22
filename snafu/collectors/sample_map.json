@@ -1,0 +1,7 @@
+{
+    "localhost": [
+            "pcp",
+            "node-exporter",
+            "mpstat"
+    ]
+}

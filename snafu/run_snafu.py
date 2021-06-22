@@ -25,7 +25,9 @@ import hashlib
 import urllib3
 import json
 import ssl
+from threading import Thread
 from distutils.util import strtobool
+from snafu.collectors.pbench import Pbench, str2bool
 from snafu.utils.common_logging import setup_loggers
 from snafu.utils.get_prometheus_data import get_prometheus_data
 from snafu.utils.wrapper_factory import wrapper_factory
@@ -73,6 +75,21 @@ def main():
         default=False,
         help="enables creation of archive file",
     )
+    parser.add_argument(
+        "-p",
+        "--pbench",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="enables pbench data collection",
+    )
+    parser.add_argument(
+        "--pbench-config",
+        dest="pbench_config",
+        default=None,
+        help="pbench configuration file"
+    )
     index_args, unknown = parser.parse_known_args()
     index_args.index_results = False
     index_args.prefix = "snafu-%s" % index_args.tool
@@ -116,6 +133,10 @@ def main():
         except Exception as e:
             logger.warn("Elasticsearch connection caused an exception: %s" % e)
             index_args.index_results = False
+
+    if index_args.pbench:
+        pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
+        pbench.start()
 
     index_args.document_size_capacity_bytes = 0
     # call py es bulk using a process generator to feed it ES documents
@@ -175,6 +196,21 @@ def main():
     total_capacity_bytes = index_args.document_size_capacity_bytes
     logger.info("Duration of execution - %s, with total size of %s bytes" % (tdelta, total_capacity_bytes))
 
+    if pbench.is_alive():
+        logger.info("Pbench data collection process still running")
+        while pbench.is_alive():
+            time.sleep(0.1)
+        logger.info("Pbench data collection process now complete")
+
+def launch_pbench_collector(config):
+    if not config:
+        logger.critical("--pbench option was selected without --pbench-config specified")
+        exit(1)
+    try:
+        pbench = Pbench(config)
+        pbench.run()
+    except Exception as e:
+        logger.critical(f"Pbench launch failed: {e}")
 
 def process_generator(index_args, parser):
     benchmark_wrapper_object_generator = generate_wrapper_object(index_args, parser)
