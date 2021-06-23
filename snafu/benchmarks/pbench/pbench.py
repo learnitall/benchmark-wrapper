@@ -96,7 +96,7 @@ class Pbench(Benchmark):
             else:
                 logs = process.successful.stderr.split("\n")
                 for log in logs:
-                    self.logger.info(log)
+                    self.logger.info(log.strip())
 
     def _run_process(self, args, env_vars=None):
         if env_vars:
@@ -111,7 +111,7 @@ class Pbench(Benchmark):
             exit(1)
         else:
             if process.successful.stdout:
-                self.logger.info(process.successful.stdout)
+                self.logger.info(process.successful.stdout.strip())
 
     def _check_redis_tds(self):
         if self.config.create_local:
@@ -207,13 +207,15 @@ class Pbench(Benchmark):
 
         return True
 
-    def run(self) -> Iterable[BenchmarkResult]:
+    def cleanup(self) -> bool:
+        try:
+            self._cleanup_tools()
+            return True
+        except Exception as e:
+            self.logger.critical(f"Cleanup failure: {e}")
+            return False
 
-        self.logger.info("Running setup tasks.")
-        if not self.setup():
-            self.logger.critical(f"Something went wrong during setup, refusing to run.")
-            exit(1)
-
+    def collect(self) -> Iterable[BenchmarkResult]:
         # Until conditional independence is added:
         if not self._check_redis_tds():
             self.logger.critical(
@@ -259,6 +261,6 @@ class Pbench(Benchmark):
 
         self._benchmark_shutdown()
 
-        self._cleanup_tools()
+        # self._cleanup_tools()
 
         return ["pbench"]

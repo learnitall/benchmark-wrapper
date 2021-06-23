@@ -137,6 +137,8 @@ def main():
     if index_args.pbench:
         pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
         pbench.start()
+    else:
+        pbench = None
 
     index_args.document_size_capacity_bytes = 0
     # call py es bulk using a process generator to feed it ES documents
@@ -196,7 +198,7 @@ def main():
     total_capacity_bytes = index_args.document_size_capacity_bytes
     logger.info("Duration of execution - %s, with total size of %s bytes" % (tdelta, total_capacity_bytes))
 
-    if pbench.is_alive():
+    if pbench and pbench.is_alive():
         logger.info("Pbench data collection process still running")
         while pbench.is_alive():
             time.sleep(0.1)
@@ -218,6 +220,8 @@ def process_generator(index_args, parser):
     for wrapper_object in benchmark_wrapper_object_generator:
         if isinstance(wrapper_object, benchmarks.Benchmark):
             for result in wrapper_object.run():
+                if result == "pbench":
+                    continue
                 if result.tag == "get_prometheus_trigger" and "prom_es" in os.environ:
                     index_prom_data(index_args, result.to_json())
                 else:
@@ -225,6 +229,8 @@ def process_generator(index_args, parser):
                     yield es_valid_document
         else:
             for data_object in wrapper_object.run():
+                if data_object == "pbench":
+                    continue
                 # drop cache after every sample
                 drop_cache()
                 for action, index in data_object.emit_actions():
