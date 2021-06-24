@@ -359,7 +359,7 @@ def write_to_archive_file(index_args, es_friendly_documment, nsample):
     if index_args.pbench:
         #FIXME - Create method of getting archive dir from Pbench collector class
         archive_filename = "/var/lib/pbench-agent" + f"/{index_args.tool}-archive-{str(nsample)}"
-    if index_args.archive_file:
+    elif index_args.archive_file:
         archive_filename = index_args.archive_file
     else:
         #  assumes that all documents have the same structure
