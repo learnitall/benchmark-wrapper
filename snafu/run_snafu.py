@@ -135,6 +135,7 @@ def main():
             index_args.index_results = False
 
     if index_args.pbench:
+        index_args.createarchive = True
         pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
         pbench.start()
     else:
@@ -275,7 +276,7 @@ def get_valid_es_document(action, index, index_args):
     logger.debug(json.dumps(es_valid_document, indent=4, default=str))
 
     if index_args.createarchive:
-        write_to_archive_file(index_args, es_valid_document)
+        write_to_archive_file(index_args, es_valid_document, action["sample"])
     return es_valid_document
 
 
@@ -354,8 +355,10 @@ def process_archive_file(index_args):
         exit(1)
 
 
-def write_to_archive_file(index_args, es_friendly_documment):
-
+def write_to_archive_file(index_args, es_friendly_documment, nsample):
+    if index_args.pbench:
+        #FIXME - Create method of getting archive dir from Pbench collector class
+        archive_filename = "/var/lib/pbench-agent" + f"/{index_args.tool}-archive-{str(nsample)}"
     if index_args.archive_file:
         archive_filename = index_args.archive_file
     else:
