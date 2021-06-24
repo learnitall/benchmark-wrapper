@@ -75,8 +75,8 @@ class Pbench:
                 exit(1)
             else:
                 logs = process.successful.stderr.split("\n")
-                for log in logs:
-                    self.logger.info(log)
+                for log in logs[:-1]:
+                    self.logger.info(log.strip())
 
     def _run_process(self, args, env_vars=None):
         if env_vars:
@@ -91,7 +91,7 @@ class Pbench:
             exit(1)
         else:
             if process.successful.stdout:
-                self.logger.info(process.successful.stdout)
+                self.logger.info(process.successful.stdout.strip())
 
     def _check_redis_tds(self):
         if self.create_local:

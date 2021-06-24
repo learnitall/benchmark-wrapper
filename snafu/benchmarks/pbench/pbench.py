@@ -95,7 +95,7 @@ class Pbench(Benchmark):
                 exit(1)
             else:
                 logs = process.successful.stderr.split("\n")
-                for log in logs:
+                for log in logs[:-1]:
                     self.logger.info(log.strip())
 
     def _run_process(self, args, env_vars=None):
