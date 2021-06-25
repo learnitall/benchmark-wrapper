@@ -219,14 +219,21 @@ def process_generator(index_args, parser):
     benchmark_wrapper_object_generator = generate_wrapper_object(index_args, parser)
 
     for wrapper_object in benchmark_wrapper_object_generator:
+        nsample = None
+        sample_counter = 0
         if isinstance(wrapper_object, benchmarks.Benchmark):
             for result in wrapper_object.run():
                 if result == "pbench":
                     continue
+                sample_counter += 1
+                if "sample" in result.to_jsonable():
+                    nsample = result.to_jsonable()["sample"]
+                elif not nsample:
+                    nsample = sample_counter
                 if result.tag == "get_prometheus_trigger" and "prom_es" in os.environ:
                     index_prom_data(index_args, result.to_json())
                 else:
-                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args)
+                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args, sample)
                     yield es_valid_document
         else:
             for data_object in wrapper_object.run():
@@ -234,7 +241,12 @@ def process_generator(index_args, parser):
                     continue
                 # drop cache after every sample
                 drop_cache()
+                sample_counter += 1
                 for action, index in data_object.emit_actions():
+                    if "sample" in action:
+                        nsample = action["sample"]
+                    elif not nsample:
+                        nsample = sample_counter
                     if "get_prometheus_trigger" in index and "prom_es" in os.environ:
                         # Action will contain the following
                         """
@@ -249,9 +261,9 @@ def process_generator(index_args, parser):
                                 }
                         """
 
-                        index_prom_data(index_args, action)
+                        index_prom_data(index_args, action, sample)
                     else:
-                        es_valid_document = get_valid_es_document(action, index, index_args)
+                        es_valid_document = get_valid_es_document(action, index, index_args, sample)
                         yield es_valid_document
 
 
@@ -261,7 +273,7 @@ def generate_wrapper_object(index_args, parser):
     yield benchmark_wrapper_object
 
 
-def get_valid_es_document(action, index, index_args):
+def get_valid_es_document(action, index, index_args, nsample):
     if index != "":
         es_index = index_args.prefix + "-" + index
     else:
@@ -276,18 +288,18 @@ def get_valid_es_document(action, index, index_args):
     logger.debug(json.dumps(es_valid_document, indent=4, default=str))
 
     if index_args.createarchive:
-        write_to_archive_file(index_args, es_valid_document, action["sample"])
+        write_to_archive_file(index_args, es_valid_document, nsample)
     return es_valid_document
 
 
-def index_prom_data(index_args, action):
+def index_prom_data(index_args, action, nsample):
     es_settings = {}
 
     # definition of prometheus data getter, will yield back prom doc
     def get_prometheus_generator(index_args, action):
         prometheus_doc_generator = get_prometheus_data(action)
         for prometheus_doc in prometheus_doc_generator.get_all_metrics():
-            es_valid_document = get_valid_es_document(prometheus_doc, "prometheus_data", index_args)
+            es_valid_document = get_valid_es_document(prometheus_doc, "prometheus_data", index_args, nsample)
             yield es_valid_document
 
     es_settings["server"] = os.getenv("prom_es")
