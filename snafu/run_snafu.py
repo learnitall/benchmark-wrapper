@@ -261,9 +261,9 @@ def process_generator(index_args, parser):
                                 }
                         """
 
-                        index_prom_data(index_args, action, sample)
+                        index_prom_data(index_args, action, nsample)
                     else:
-                        es_valid_document = get_valid_es_document(action, index, index_args, sample)
+                        es_valid_document = get_valid_es_document(action, index, index_args, nsample)
                         yield es_valid_document
 
 
@@ -296,7 +296,7 @@ def index_prom_data(index_args, action, nsample):
     es_settings = {}
 
     # definition of prometheus data getter, will yield back prom doc
-    def get_prometheus_generator(index_args, action):
+    def get_prometheus_generator(index_args, action, nsample):
         prometheus_doc_generator = get_prometheus_data(action)
         for prometheus_doc in prometheus_doc_generator.get_all_metrics():
             es_valid_document = get_valid_es_document(prometheus_doc, "prometheus_data", index_args, nsample)
@@ -334,7 +334,7 @@ def index_prom_data(index_args, action, nsample):
         logger.info("initializing prometheus indexing")
         parallel_setting = strtobool(os.environ.get("parallel", "false"))
         res_beg, res_end, res_suc, res_dup, res_fail, res_retry = streaming_bulk(
-            es, get_prometheus_generator(index_args, action), parallel_setting
+            es, get_prometheus_generator(index_args, action, nsample), parallel_setting
         )
 
         logger.info(
