@@ -233,7 +233,7 @@ def process_generator(index_args, parser):
                 if result.tag == "get_prometheus_trigger" and "prom_es" in os.environ:
                     index_prom_data(index_args, result.to_json())
                 else:
-                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args, sample)
+                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args, nsample)
                     yield es_valid_document
         else:
             for data_object in wrapper_object.run():
