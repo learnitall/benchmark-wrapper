@@ -220,7 +220,7 @@ class Pbench:
         self.sample_dir = self.iter_dir + f"/sample-{nsample}"
         self._dir_creator(self.sample_dir, "sample dir")
         self.logger.info(
-            f"Beginning {self.sample_length}s sample {s} of iteration {i}"
+            f"Beginning pbench sample {self.nsample}"
         )
         self._start_stop_sender("start", self.sample_dir)
         return self.sample_dir
