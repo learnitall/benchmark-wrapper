@@ -176,7 +176,7 @@ class Pbench:
         args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
         self._run_process(args)
 
-    def init(self):
+    def startup(self):
         if not self._check_redis_tds():
             self.logger.critical(
                 "One or more of redis-server, tool-data-sink specification is missing or invalid for pbench config"

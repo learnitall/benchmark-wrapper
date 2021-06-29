@@ -82,19 +82,10 @@ def main():
         help="Provide collector name (only 'pbench' currently supported)"
     )
     parser.add_argument(
-        "-p",
-        "--pbench",
-        type=str2bool,
-        nargs="?",
-        const=True,
-        default=False,
-        help="enables pbench data collection",
-    )
-    parser.add_argument(
-        "--pbench-config",
-        dest="pbench_config",
+        "--collector-config",
+        dest="collector_config",
         default=None,
-        help="pbench configuration file"
+        help="collector configuration file"
     )
     index_args, unknown = parser.parse_known_args()
     index_args.index_results = False
@@ -143,9 +134,7 @@ def main():
     global collector
     if index_args.collector:
         index_args.createarchive = True
-        collector = launch_pbench_collector(index_args.pbench_config)
-        #pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
-        #pbench.start()
+        collector = launch_collector(index_args)
     else:
         collector = None
 
@@ -211,21 +200,14 @@ def main():
     total_capacity_bytes = index_args.document_size_capacity_bytes
     logger.info("Duration of execution - %s, with total size of %s bytes" % (tdelta, total_capacity_bytes))
 
-    """
-    if pbench and pbench.is_alive():
-        logger.info("Pbench data collection process still running")
-        while pbench.is_alive():
-            time.sleep(0.1)
-        logger.info("Pbench data collection process now complete")
-    """
 
-def launch_pbench_collector(config):
-    if not config:
-        logger.critical("--pbench option was selected without --pbench-config specified")
+def launch_collector(args):
+    if not args.collector_config:
+        logger.critical("--collector option was selected without --collector-config specified")
         exit(1)
     try:
-        pbench = Pbench(config)
-        pbench.init()
+        pbench = Pbench(args.collector_config)
+        pbench.startup()
         return pbench
     except Exception as e:
         logger.critical(f"Pbench launch failed: {e}")
