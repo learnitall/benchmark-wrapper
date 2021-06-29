@@ -76,6 +76,12 @@ def main():
         help="enables creation of archive file",
     )
     parser.add_argument(
+        "-C",
+        "--collector", 
+        default = None,
+        help="Provide collector name (only 'pbench' currently supported)"
+    )
+    parser.add_argument(
         "-p",
         "--pbench",
         type=str2bool,
@@ -134,12 +140,14 @@ def main():
             logger.warn("Elasticsearch connection caused an exception: %s" % e)
             index_args.index_results = False
 
-    if index_args.pbench:
+    global collector
+    if index_args.collector:
         index_args.createarchive = True
-        pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
-        pbench.start()
+        collector = launch_pbench_collector(index_args.pbench_config)
+        #pbench = Thread(target=launch_pbench_collector, args=(index_args.pbench_config,))
+        #pbench.start()
     else:
-        pbench = None
+        collector = None
 
     index_args.document_size_capacity_bytes = 0
     # call py es bulk using a process generator to feed it ES documents
@@ -194,16 +202,22 @@ def main():
     start_t = datetime.datetime.strptime(start_t, FMT)
     end_t = datetime.datetime.strptime(end_t, FMT)
 
+    if collector:
+        collector.shutdown()
+        logger.info(f"Collector {index_args.collector} has been shut down")
+
     # get time delta for indexing run
     tdelta = end_t - start_t
     total_capacity_bytes = index_args.document_size_capacity_bytes
     logger.info("Duration of execution - %s, with total size of %s bytes" % (tdelta, total_capacity_bytes))
 
+    """
     if pbench and pbench.is_alive():
         logger.info("Pbench data collection process still running")
         while pbench.is_alive():
             time.sleep(0.1)
         logger.info("Pbench data collection process now complete")
+    """
 
 def launch_pbench_collector(config):
     if not config:
@@ -211,29 +225,26 @@ def launch_pbench_collector(config):
         exit(1)
     try:
         pbench = Pbench(config)
-        pbench.run()
+        pbench.init()
+        return pbench
     except Exception as e:
         logger.critical(f"Pbench launch failed: {e}")
+        return None
 
 def process_generator(index_args, parser):
     benchmark_wrapper_object_generator = generate_wrapper_object(index_args, parser)
 
     for wrapper_object in benchmark_wrapper_object_generator:
-        nsample = None
-        sample_counter = 0
+        if collector:
+            index_args.archive_file = collector.start_sample(1) + f"/{index_args.tool}"
         if isinstance(wrapper_object, benchmarks.Benchmark):
             for result in wrapper_object.run():
                 if result == "pbench":
                     continue
-                sample_counter += 1
-                if "sample" in result.to_jsonable():
-                    nsample = result.to_jsonable()["sample"]
-                elif not nsample:
-                    nsample = sample_counter
                 if result.tag == "get_prometheus_trigger" and "prom_es" in os.environ:
                     index_prom_data(index_args, result.to_json())
                 else:
-                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args, nsample)
+                    es_valid_document = get_valid_es_document(result.to_jsonable(), result.tag, index_args)
                     yield es_valid_document
         else:
             for data_object in wrapper_object.run():
@@ -241,12 +252,7 @@ def process_generator(index_args, parser):
                     continue
                 # drop cache after every sample
                 drop_cache()
-                sample_counter += 1
                 for action, index in data_object.emit_actions():
-                    if "sample" in action:
-                        nsample = action["sample"]
-                    elif not nsample:
-                        nsample = sample_counter
                     if "get_prometheus_trigger" in index and "prom_es" in os.environ:
                         # Action will contain the following
                         """
@@ -261,10 +267,12 @@ def process_generator(index_args, parser):
                                 }
                         """
 
-                        index_prom_data(index_args, action, nsample)
+                        index_prom_data(index_args, action)
                     else:
-                        es_valid_document = get_valid_es_document(action, index, index_args, nsample)
+                        es_valid_document = get_valid_es_document(action, index, index_args)
                         yield es_valid_document
+        if collector:
+            collector.stop_sample()
 
 
 def generate_wrapper_object(index_args, parser):
@@ -273,7 +281,7 @@ def generate_wrapper_object(index_args, parser):
     yield benchmark_wrapper_object
 
 
-def get_valid_es_document(action, index, index_args, nsample):
+def get_valid_es_document(action, index, index_args):
     if index != "":
         es_index = index_args.prefix + "-" + index
     else:
@@ -288,18 +296,18 @@ def get_valid_es_document(action, index, index_args, nsample):
     logger.debug(json.dumps(es_valid_document, indent=4, default=str))
 
     if index_args.createarchive:
-        write_to_archive_file(index_args, es_valid_document, nsample)
+        write_to_archive_file(index_args, es_valid_document)
     return es_valid_document
 
 
-def index_prom_data(index_args, action, nsample):
+def index_prom_data(index_args, action):
     es_settings = {}
 
     # definition of prometheus data getter, will yield back prom doc
-    def get_prometheus_generator(index_args, action, nsample):
+    def get_prometheus_generator(index_args, action):
         prometheus_doc_generator = get_prometheus_data(action)
         for prometheus_doc in prometheus_doc_generator.get_all_metrics():
-            es_valid_document = get_valid_es_document(prometheus_doc, "prometheus_data", index_args, nsample)
+            es_valid_document = get_valid_es_document(prometheus_doc, "prometheus_data", index_args)
             yield es_valid_document
 
     es_settings["server"] = os.getenv("prom_es")
@@ -334,7 +342,7 @@ def index_prom_data(index_args, action, nsample):
         logger.info("initializing prometheus indexing")
         parallel_setting = strtobool(os.environ.get("parallel", "false"))
         res_beg, res_end, res_suc, res_dup, res_fail, res_retry = streaming_bulk(
-            es, get_prometheus_generator(index_args, action, nsample), parallel_setting
+            es, get_prometheus_generator(index_args, action), parallel_setting
         )
 
         logger.info(
@@ -367,11 +375,8 @@ def process_archive_file(index_args):
         exit(1)
 
 
-def write_to_archive_file(index_args, es_friendly_documment, nsample):
-    if index_args.pbench:
-        #FIXME - Create method of getting archive dir from Pbench collector class
-        archive_filename = "/var/lib/pbench-agent" + f"/{index_args.tool}-archive-{str(nsample)}"
-    elif index_args.archive_file:
+def write_to_archive_file(index_args, es_friendly_documment):
+    if index_args.archive_file:
         archive_filename = index_args.archive_file
     else:
         #  assumes that all documents have the same structure

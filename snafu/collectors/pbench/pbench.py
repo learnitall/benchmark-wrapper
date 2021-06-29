@@ -64,6 +64,8 @@ class Pbench:
             exit(1)
         self.redis = config.get(section="CREATE", option="redis", fallback=None)
         self.tds = config.get(section="CREATE", option="tool_data_sink", fallback=None)
+        self.iter_dir = None
+        self.running_sample = False
 
     def _cleanup_tools(self, message=None):
         if message:
@@ -174,7 +176,7 @@ class Pbench:
         args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
         self._run_process(args)
 
-    def run(self):
+    def init(self):
         if not self._check_redis_tds():
             self.logger.critical(
                 "One or more of redis-server, tool-data-sink specification is missing or invalid for pbench config"
@@ -200,23 +202,41 @@ class Pbench:
 
         self._benchmark_startup()
 
-        for i in range(1, self.iterations + 1):
-            iter_dir = os.environ["benchmark_run_dir"] + f"/iter-{i}"
-            self._dir_creator(iter_dir, "iteration dir")
-            for s in range(1, self.samples + 1):
-                sample_dir = iter_dir + f"/sample-{s}"
-                self._dir_creator(sample_dir, "sample dir")
-                self.logger.info(
-                    f"Beginning {self.sample_length}s sample {s} of iteration {i}"
-                )
-                self._start_stop_sender("start", sample_dir)
-                sleep(self.sample_length)
-                self._start_stop_sender("stop", sample_dir)
+        #FOR NOW
+        self.iter_dir = os.environ["benchmark_run_dir"] + f"/collected-samples"
+        self._dir_creator(self.iter_dir, "iteration dir")
+    
+    def start_sample(self, nsample):
+        if not self.iter_dir:
+            self.logger.exception("The init() method has not been run for the collector, cannot start sample")
+            return None
 
-                # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
-                self.logger.info(f"Sending data for sample {s} of iteration {i}")
-                self._start_stop_sender("send", sample_dir)
+        if self.running_sample:
+            self.logger.exception("There is still a running sample, call stop_sample() before starting another")
+            return None
 
+        self.nsample = nsample
+        self.running_sample = True
+        self.sample_dir = self.iter_dir + f"/sample-{nsample}"
+        self._dir_creator(self.sample_dir, "sample dir")
+        self.logger.info(
+            f"Beginning {self.sample_length}s sample {s} of iteration {i}"
+        )
+        self._start_stop_sender("start", self.sample_dir)
+        return self.sample_dir
+
+    def stop_sample(self):
+        if not self.running_sample:
+            self.logger.exception("No sample currently running, please start a sample first")
+            return
+
+        self._start_stop_sender("stop", self.sample_dir)
+
+        # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
+        self.logger.info(f"Pbench sample stopped, sending data for sample {self.nsample}")
+        self._start_stop_sender("send", self.sample_dir)
+        self.running_sample = False
+
+    def shutdown(self):
         self._benchmark_shutdown()
-
         self._cleanup_tools()
