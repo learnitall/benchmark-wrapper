@@ -27,7 +27,7 @@ import json
 import ssl
 from threading import Thread
 from distutils.util import strtobool
-from snafu.collectors.pbench import Pbench, str2bool
+from snafu.collectors.pbench.pbench import Pbench, str2bool
 from snafu.utils.common_logging import setup_loggers
 from snafu.utils.get_prometheus_data import get_prometheus_data
 from snafu.utils.wrapper_factory import wrapper_factory
