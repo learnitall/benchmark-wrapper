@@ -14,6 +14,7 @@ from abc import ABCMeta
 
 
 TOOLS: Dict[str, object] = dict()
+COLLECTORS : Dict[str, object] = dict()
 
 
 class ToolRegistryMeta(ABCMeta):
@@ -41,5 +42,17 @@ class ToolRegistryMeta(ABCMeta):
         if attributedict.get("tool_name", None) is None:
             raise KeyError("When using ToolRegistryMeta, please set the 'tool_name' class attribute.")
         TOOLS[attributedict["tool_name"]] = new_class
+
+        return new_class
+
+class CollectorRegistryMeta(ABCMeta):
+    """
+    To be filled
+    """
+    def __new__(cls, clsname, superclasses, attributedict):
+        new_class = super().__new__(cls, clsname, superclasses, attributedict)
+        if attributedict.get("collector_name", None) is None:
+            raise KeyError("When using CollectorRegistryMeta, please set the 'collector_name' class attribute.")
+        COLLECTORS[attributedict["collector_name"]] = new_class
 
         return new_class

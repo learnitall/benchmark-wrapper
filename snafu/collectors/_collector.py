@@ -8,7 +8,7 @@ from snafu import registry
 from snafu.config import check_file, ConfigArgument, FuncAction
 
 
-class Collector(ABC, metaclass=registry.ToolRegistryMeta):
+class Collector(ABC, metaclass=registry.CollectorRegistryMeta):
     """
     Abstract Base class for data collectors.
 
@@ -16,7 +16,7 @@ class Collector(ABC, metaclass=registry.ToolRegistryMeta):
     ``run``, ``cleanup`` and ``setup`` methods.
     """
 
-    tool_name = "_base_collector"
+    collector_name = "_base_collector"
     """
     args: Iterable[ConfigArgument] = tuple()
     metadata: Iterable[str] = ["cluster_name", "user", "uuid"]
