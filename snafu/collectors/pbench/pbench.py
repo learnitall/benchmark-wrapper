@@ -25,7 +25,7 @@ class Pbench(Collector):
     collector_name = "pbench"
 
     def __init__(self, config_file):
-        super.__init__(config_file)
+        super().__init__(config_file)
         self.iter_dir = None
         self.running_sample = False
 
