@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
 import os
 import json
 import platform
 import argparse
-from configparser import ConfigParser
 from datetime import datetime
-from time import sleep
+from snafu.collectors import Collector
 from snafu.config import check_file
 from snafu.process import sample_process, ProcessSample
 
@@ -23,47 +21,11 @@ def str2bool(v):
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
-class Pbench:
-    tool_name = "pbench"
+class Pbench(Collector):
+    collector_name = "pbench"
 
     def __init__(self, config_file):
-        self.logger = logging.getLogger("snafu").getChild(self.tool_name)
-        if not check_file(config_file):
-            self.logger.critical(
-                f"Pbench config file '{config_file}' not found or unreadable"
-            )
-            exit(1)
-        config = ConfigParser()
-        config.read(config_file)
-        self.iterations = config.getint(
-            section="BASICS", option="iterations", fallback=1
-        )
-        self.samples = config.getint(section="BASICS", option="samples", fallback=1)
-        self.sample_length = config.getint(
-            section="BASICS", option="sample_length", fallback=20
-        )
-        try:
-            self.create_local = str2bool(
-                config.get(section="CREATE", option="create_local", fallback="false")
-            )
-        except Exception as e:
-            self.logger.critical(
-                f"Invalid create_local option under CREATE section: {e}"
-            )
-            exit(1)
-        self.tool_dict_path = config.get(section="PATHS", option="host_tool_mapping", fallback=None)
-        if not self.tool_dict_path:
-            self.logger.critical(
-                "No host_tool_mapping option specified under PATHS section"
-            )
-            exit(1)
-        if not check_file(self.tool_dict_path):
-            self.logger.critical(
-                f"Tool mapping file '{self.tool_dict_path}' not found or unreadable"
-            )
-            exit(1)
-        self.redis = config.get(section="CREATE", option="redis", fallback=None)
-        self.tds = config.get(section="CREATE", option="tool_data_sink", fallback=None)
+        super.__init__(config_file)
         self.iter_dir = None
         self.running_sample = False
 
@@ -175,6 +137,37 @@ class Pbench:
 
         args = [f"pbench-{method}-tools", "--group=default", f"--dir={dir}"]
         self._run_process(args)
+
+    def set_config_vars(self, config):
+        self.iterations = config.getint(
+            section="BASICS", option="iterations", fallback=1
+        )
+        self.samples = config.getint(section="BASICS", option="samples", fallback=1)
+        self.sample_length = config.getint(
+            section="BASICS", option="sample_length", fallback=20
+        )
+        try:
+            self.create_local = str2bool(
+                config.get(section="CREATE", option="create_local", fallback="false")
+            )
+        except Exception as e:
+            self.logger.critical(
+                f"Invalid create_local option under CREATE section: {e}"
+            )
+            exit(1)
+        self.tool_dict_path = config.get(section="PATHS", option="host_tool_mapping", fallback=None)
+        if not self.tool_dict_path:
+            self.logger.critical(
+                "No host_tool_mapping option specified under PATHS section"
+            )
+            exit(1)
+        if not check_file(self.tool_dict_path):
+            self.logger.critical(
+                f"Tool mapping file '{self.tool_dict_path}' not found or unreadable"
+            )
+            exit(1)
+        self.redis = config.get(section="CREATE", option="redis", fallback=None)
+        self.tds = config.get(section="CREATE", option="tool_data_sink", fallback=None)
 
     def startup(self):
         if not self._check_redis_tds():
