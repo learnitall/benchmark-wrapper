@@ -132,8 +132,9 @@ def main():
 
     global collector
     if index_args.collector:
-        index_args.createarchive = True
         collector = launch_collector(index_args)
+        if collector:
+            index_args.createarchive = True
     else:
         collector = None
 
@@ -205,7 +206,7 @@ def launch_collector(args):
         logger.critical("--collector option was selected without --collector-config specified")
         exit(1)
     try:
-        collector = collector_factory(args.collector_config)
+        collector = collector_factory(args.collector, args.collector_config)
         collector.startup()
         return collector
     except Exception as e:
