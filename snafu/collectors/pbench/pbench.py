@@ -139,6 +139,7 @@ class Pbench(Collector):
         self._run_process(args)
 
     def set_config_vars(self, config):
+        # FIXME: Determine whether or not to remove sample, iteration, sample length from here (probably)
         self.iterations = config.getint(
             section="BASICS", option="iterations", fallback=1
         )
@@ -225,7 +226,7 @@ class Pbench(Collector):
 
         self._start_stop_sender("stop", self.sample_dir)
 
-        # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: Will def be altered for how we want data
+        # COLLECT TRANSIENT DATA HERE (SEND RESULTS) NOTE: May be altered for how we want data
         self.logger.info(f"Pbench sample stopped, sending data for sample {self.nsample}")
         self._start_stop_sender("send", self.sample_dir)
         self.running_sample = False

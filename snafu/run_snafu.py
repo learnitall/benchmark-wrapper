@@ -25,12 +25,11 @@ import hashlib
 import urllib3
 import json
 import ssl
-from threading import Thread
 from distutils.util import strtobool
-from snafu.collectors.pbench.pbench import Pbench, str2bool
 from snafu.utils.common_logging import setup_loggers
 from snafu.utils.get_prometheus_data import get_prometheus_data
 from snafu.utils.wrapper_factory import wrapper_factory
+from snafu.collectors.collector_factory import collector_factory
 from snafu.utils.request_cache_drop import drop_cache
 from snafu.utils.py_es_bulk import streaming_bulk
 from snafu import benchmarks
@@ -206,11 +205,11 @@ def launch_collector(args):
         logger.critical("--collector option was selected without --collector-config specified")
         exit(1)
     try:
-        pbench = Pbench(args.collector_config)
-        pbench.startup()
-        return pbench
+        collector = collector_factory(args.collector_config)
+        collector.startup()
+        return collector
     except Exception as e:
-        logger.critical(f"Pbench launch failed: {e}")
+        logger.critical(f"Collector launch failed: {e}")
         return None
 
 def process_generator(index_args, parser):

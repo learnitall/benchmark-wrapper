@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser
 import logging
 from snafu import registry
-from snafu.config import check_file, ConfigArgument, FuncAction
+from snafu.config import check_file
 
 
 class Collector(ABC, metaclass=registry.CollectorRegistryMeta):
