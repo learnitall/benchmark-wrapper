@@ -16,5 +16,5 @@ def collector_factory(collector_name, config):
         logger.info("identified %s as the collector" % collector_name)
         return collector_obj
     else:
-        logger.error("Tool name %s is not recognized." % collector_name)
+        logger.error("Collector name %s is not recognized." % collector_name)
         return 1  # if error return 1 and fail

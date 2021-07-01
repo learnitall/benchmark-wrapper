@@ -32,7 +32,7 @@ from snafu.utils.wrapper_factory import wrapper_factory
 from snafu.collectors.collector_factory import collector_factory
 from snafu.utils.request_cache_drop import drop_cache
 from snafu.utils.py_es_bulk import streaming_bulk
-from snafu import benchmarks
+from snafu import benchmarks, collectors
 
 logger = logging.getLogger("snafu")
 
@@ -97,6 +97,9 @@ def main():
     # Log loaded benchmarks
     show_db_tb = index_args.loglevel == logging.DEBUG
     benchmarks.DETECTED_BENCHMARKS.log(logger=logger, level=logging.INFO, show_tb=show_db_tb)
+
+    # Log loaded collectors
+    collectors.DETECTED_COLLECTORS.log(logger=logger, level=logging.INFO, show_tb=show_db_tb)
 
     # set up a standard format for time
     FMT = "%Y-%m-%dT%H:%M:%SGMT"
