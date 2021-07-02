@@ -236,4 +236,8 @@ class Pbench(Collector):
         self._cleanup_tools()
 
     def upload(self):
-        self.logger.info("THIS IS WHERE AN UPLOAD WOULD HAPPEN")
+        self.logger.info("Uploading pbench archives to server...")
+        args = ["pbench-move-results"]
+        self._run_process(args)
+
+
