@@ -12,9 +12,9 @@ class Collector(ABC, metaclass=registry.CollectorRegistryMeta):
     """
     Abstract Base class for data collectors.
 
-    To use, subclass, set the ``collector_name`` attribute, and overwrite the
-    ``set_config_vars``, ``startup``, `start_sample``, `stop_sample``, and 
-    ``shutdown`` methods.
+    To use, subclass, set the ``collector_name`` attribute, and overwrite
+    the ``set_config_vars``, ``startup``, `start_sample``, `stop_sample``,
+    ``shutdown``, and ``upload`` methods.
     """
 
     collector_name = "_base_collector"
@@ -49,3 +49,7 @@ class Collector(ABC, metaclass=registry.CollectorRegistryMeta):
     @abstractmethod
     def shutdown(self):
         """Stop persistent data collection processes and clean up."""
+
+    @abstractmethod
+    def upload(self):
+        """Upload collected data to a desired (collector defined) location."""

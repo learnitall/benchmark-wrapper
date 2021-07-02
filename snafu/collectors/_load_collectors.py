@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Exact copy of snafu/benchmarks/_load_benchmarks.py but for collectors
+Almost exact copy of snafu/benchmarks/_load_benchmarks.py but for collectors
 """
 import sys
 import os
@@ -48,7 +48,7 @@ def load_collectors() -> DetectedCollectors:
     module_dir = os.path.dirname(__file__)
 
     for _, module, _ in pkgutil.iter_modules([module_dir]):
-        if not module.startswith("_"):
+        if not module.startswith("_") and module != "collector_factory":
             try:
                 # specify relative import using dot notation
                 importlib.import_module(f".{module}", package=package)

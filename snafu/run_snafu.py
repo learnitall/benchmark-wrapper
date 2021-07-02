@@ -86,6 +86,14 @@ def main():
         default=None,
         help="collector configuration file"
     )
+    parser.add_argument(
+        "-u",
+        "--upload",
+        action="store_const",
+        const=True,
+        default=False,
+        help="switches snafu into collected data upload mode",
+    )
     index_args, unknown = parser.parse_known_args()
     index_args.index_results = False
     index_args.prefix = "snafu-%s" % index_args.tool
@@ -103,6 +111,12 @@ def main():
 
     # set up a standard format for time
     FMT = "%Y-%m-%dT%H:%M:%SGMT"
+
+    if index_args.upload:
+        logger.info("UPLOAD mode selected")
+        logger.info("Note: Only 'collector' and 'collector-config' args will be considered")
+        upload(index_args.collector, index_args.collector_config)
+        exit(0)
 
     # instantiate elasticsearch instance and check connection
     es_settings = {}
@@ -215,6 +229,20 @@ def launch_collector(args):
     except Exception as e:
         logger.critical(f"Collector launch failed: {e}")
         return None
+
+def upload(collector_name, config):
+    if not collector_name:
+        logger.critical("--upload mode enabled without --collector specified")
+        exit(1)
+    if not config:
+        logger.critical("--upload mode enabled without --collector-config specified")
+        exit(1)
+    try:
+        collector = collector_factory(collector_name, config)
+        collector.upload()
+    except Exception as e:
+        logger.critical(f"Collector upload failed: {e}")
+        exit(1)
 
 def process_generator(index_args, parser):
     benchmark_wrapper_object_generator = generate_wrapper_object(index_args, parser)

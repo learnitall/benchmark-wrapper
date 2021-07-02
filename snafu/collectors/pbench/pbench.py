@@ -234,3 +234,6 @@ class Pbench(Collector):
     def shutdown(self):
         self._benchmark_shutdown()
         self._cleanup_tools()
+
+    def upload(self):
+        self.logger.info("THIS IS WHERE AN UPLOAD WOULD HAPPEN")
