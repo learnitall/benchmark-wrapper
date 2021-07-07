@@ -241,7 +241,7 @@ class Pbench(Collector):
         if not self.server:
             self.logger.critical("No web_server specified in URLS section of config file")
 
-        conf_path = os.environ["pbench_install_dir"] + "/config/pbench-agent.cfg"
+        conf_path = "/opt/pbench-agent/config/pbench-agent.cfg"
         pbench_config = ConfigParser()
         pbench_config.read(conf_path)
         pbench_config.set("DEFAULT", "pbench_web_server", self.server)
