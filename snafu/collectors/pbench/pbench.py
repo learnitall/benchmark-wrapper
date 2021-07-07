@@ -170,7 +170,7 @@ class Pbench(Collector):
             exit(1)
         self.redis = config.get(section="CREATE", option="redis", fallback=None)
         self.tds = config.get(section="CREATE", option="tool_data_sink", fallback=None)
-        self.server = config.get(section="URL", option="web_server", fallback=None)
+        self.server = config.get(section="URLS", option="web_server", fallback=None)
 
     def startup(self):
         if not self._check_redis_tds():
@@ -239,12 +239,14 @@ class Pbench(Collector):
 
     def upload(self):
         if not self.server:
-            self.logger.critical("No web_server specified in URL section of config file")
-            
+            self.logger.critical("No web_server specified in URLS section of config file")
+
         conf_path = os.environ["pbench_install_dir"] + "/config/pbench-agent.cfg"
         pbench_config = ConfigParser()
         pbench_config.read(conf_path)
         pbench_config.set("DEFAULT", "pbench_web_server", self.server)
+        with open(conf_path, 'w') as updated:
+            pbench_config.write(updated)
 
         self.logger.info("Uploading pbench archives to server...")
         args = ["pbench-move-results"]
