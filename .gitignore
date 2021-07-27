@@ -72,4 +72,5 @@ venv.bak/
 # Test caches
 .tox
 .coverage
+.coverage.*
 coverage.xml
