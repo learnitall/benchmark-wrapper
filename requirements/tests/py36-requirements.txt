@@ -77,7 +77,7 @@ kubernetes==11.0.0
     #   snafu (setup.cfg)
 markupsafe==2.0.1
     # via jinja2
-numpy==1.19.5
+numpy==1.21.1
     # via
     #   pandas
     #   prometheus-api-client
