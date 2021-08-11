@@ -31,7 +31,7 @@ dictdiffer==0.9.0
     # via openshift
 docutils==0.17.1
     # via statistics
-elasticsearch==7.13.4
+elasticsearch==7.14.0
     # via snafu (setup.cfg)
 flent==2.0.1
     # via snafu (setup.cfg)
