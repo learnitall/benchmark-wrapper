@@ -306,7 +306,7 @@ tornado==6.1
     #   jupyter-client
     #   notebook
     #   terminado
-traitlets==4.3.3
+traitlets==5.0.5
     # via
     #   ipykernel
     #   ipython
