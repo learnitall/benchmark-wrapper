@@ -23,7 +23,7 @@ configargparse==1.5.2
     # via snafu (setup.cfg)
 configparser==5.0.2
     # via snafu (setup.cfg)
-dataclasses==0.6
+dataclasses==0.8
     # via snafu (setup.cfg)
 dateparser==1.0.0
     # via prometheus-api-client
