@@ -85,7 +85,7 @@ numpy==1.19.5
     #   snafu (setup.cfg)
 oauthlib==3.1.1
     # via requests-oauthlib
-openshift==0.11
+openshift==0.12.0
     # via snafu (setup.cfg)
 packaging==21.0
     # via
