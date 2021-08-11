@@ -154,7 +154,7 @@ nest-asyncio==1.5.1
     # via nbclient
 notebook==6.4.3
     # via snafu (setup.cfg)
-numpy==1.19.5
+numpy==1.21.1
     # via
     #   pandas
     #   prometheus-api-client
