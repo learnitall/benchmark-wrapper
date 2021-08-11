@@ -63,7 +63,7 @@ jmespath==0.10.0
     #   botocore
 kafka-python==2.0.2
     # via snafu (setup.cfg)
-kubernetes==11.0.0
+kubernetes==17.17.0
     # via
     #   openshift
     #   snafu (setup.cfg)
