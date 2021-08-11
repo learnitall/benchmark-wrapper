@@ -80,7 +80,7 @@ ipykernel==5.5.5
     # via
     #   notebook
     #   snafu (setup.cfg)
-ipython==7.16.1
+ipython==7.26.0
     # via
     #   ipykernel
     #   snafu (setup.cfg)
