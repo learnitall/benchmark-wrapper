@@ -29,7 +29,7 @@ configparser==5.0.2
     # via snafu (setup.cfg)
 coverage==5.5
     # via pytest-cov
-dataclasses==0.6
+dataclasses==0.8
     # via snafu (setup.cfg)
 dateparser==1.0.0
     # via prometheus-api-client
