@@ -39,7 +39,7 @@ distlib==0.3.2
     # via virtualenv
 docutils==0.17.1
     # via statistics
-elasticsearch==7.13.4
+elasticsearch==7.14.0
     # via snafu (setup.cfg)
 filelock==3.0.12
     # via
