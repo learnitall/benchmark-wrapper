@@ -103,7 +103,7 @@ jmespath==0.10.0
     #   botocore
 jsonschema==3.2.0
     # via nbformat
-jupyter-client==6.1.12
+jupyter-client==6.2.0
     # via
     #   ipykernel
     #   nbclient
