@@ -60,7 +60,7 @@ docutils==0.16
     #   sphinx
     #   sphinx-rtd-theme
     #   statistics
-elasticsearch==7.13.4
+elasticsearch==7.14.0
     # via snafu (setup.cfg)
 entrypoints==0.3
     # via nbconvert
