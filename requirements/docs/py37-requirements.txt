@@ -278,7 +278,7 @@ six==1.16.0
     #   python-dateutil
 snowballstemmer==2.1.0
     # via sphinx
-sphinx==3.5.4
+sphinx==4.1.2
     # via
     #   myst-parser
     #   nbsphinx
