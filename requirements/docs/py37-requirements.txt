@@ -72,7 +72,7 @@ idna==3.2
     # via requests
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==3.10.1
+importlib-metadata==4.6.3
     # via
     #   ipykernel
     #   jsonschema
