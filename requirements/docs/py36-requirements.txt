@@ -76,7 +76,7 @@ importlib-metadata==4.6.3
     # via
     #   jsonschema
     #   snafu (setup.cfg)
-ipykernel==5.5.5
+ipykernel==6.0.3
     # via
     #   notebook
     #   snafu (setup.cfg)
