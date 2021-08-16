@@ -4,9 +4,11 @@
 #
 #    pip-compile --output-file=requirements/install/py36-requirements.txt setup.cfg
 #
-boto3==1.18.20
+backports.zoneinfo==0.2.1
+    # via tzlocal
+boto3==1.18.21
     # via snafu (setup.cfg)
-botocore==1.21.20
+botocore==1.21.21
     # via
     #   boto3
     #   s3transfer
@@ -41,8 +43,10 @@ google-auth==1.34.0
     # via kubernetes
 idna==3.2
     # via requests
-importlib-metadata==4.6.3
+importlib-metadata==4.6.4
     # via snafu (setup.cfg)
+importlib-resources==5.2.2
+    # via backports.zoneinfo
 jinja2==3.0.1
     # via openshift
 jmespath==0.10.0
@@ -94,7 +98,6 @@ pytz==2021.1
     # via
     #   dateparser
     #   pandas
-    #   tzlocal
 pyyaml==5.4.1
     # via
     #   kubernetes
@@ -133,7 +136,7 @@ ttp==0.7.2
     # via snafu (setup.cfg)
 typing-extensions==3.10.0.0
     # via importlib-metadata
-tzlocal==2.1
+tzlocal==3.0
     # via dateparser
 urllib3==1.26.6
     # via
@@ -141,10 +144,12 @@ urllib3==1.26.6
     #   elasticsearch
     #   kubernetes
     #   requests
-websocket-client==1.2.0
+websocket-client==1.2.1
     # via kubernetes
 zipp==3.5.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

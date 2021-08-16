@@ -18,13 +18,17 @@ babel==2.9.1
     # via sphinx
 backcall==0.2.0
     # via ipython
+backports.zoneinfo==0.2.1
+    # via
+    #   -r requirements/install/py36-requirements.txt
+    #   tzlocal
 bleach==4.0.0
     # via nbconvert
-boto3==1.18.20
+boto3==1.18.21
     # via
     #   -r requirements/install/py36-requirements.txt
     #   snafu (setup.cfg)
-botocore==1.21.20
+botocore==1.21.21
     # via
     #   -r requirements/install/py36-requirements.txt
     #   boto3
@@ -100,11 +104,15 @@ idna==3.2
     #   requests
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==4.6.3
+importlib-metadata==4.6.4
     # via
     #   -r requirements/install/py36-requirements.txt
     #   jsonschema
     #   snafu (setup.cfg)
+importlib-resources==5.2.2
+    # via
+    #   -r requirements/install/py36-requirements.txt
+    #   backports.zoneinfo
 ipykernel==5.5.5
     # via
     #   notebook
@@ -252,7 +260,7 @@ pyasn1-modules==0.2.8
     #   google-auth
 pycparser==2.20
     # via cffi
-pygments==2.9.0
+pygments==2.10.0
     # via
     #   ipython
     #   jupyterlab-pygments
@@ -283,7 +291,6 @@ pytz==2021.1
     #   babel
     #   dateparser
     #   pandas
-    #   tzlocal
 pyyaml==5.4.1
     # via
     #   -r requirements/install/py36-requirements.txt
@@ -403,7 +410,7 @@ typing-extensions==3.10.0.0
     #   -r requirements/install/py36-requirements.txt
     #   importlib-metadata
     #   markdown-it-py
-tzlocal==2.1
+tzlocal==3.0
     # via
     #   -r requirements/install/py36-requirements.txt
     #   dateparser
@@ -418,7 +425,7 @@ wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1
     # via bleach
-websocket-client==1.2.0
+websocket-client==1.2.1
     # via
     #   -r requirements/install/py36-requirements.txt
     #   kubernetes
@@ -426,6 +433,7 @@ zipp==3.5.0
     # via
     #   -r requirements/install/py36-requirements.txt
     #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
