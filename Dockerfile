@@ -21,8 +21,7 @@ RUN dnf install --nodocs -y \
 COPY ./requirements/install/py38-requirements.txt /opt/snafu-requirements.txt
 RUN pip3 install --no-cache-dir -r /opt/snafu-requirements.txt
 
-# Install snafu using the wheel and then delete source
-# Using a wheel and then deleting the source will save space in the image
+# Install snafu using wheel and then delete source, trimming image size
 COPY . /opt/snafu
 RUN cd /opt/snafu && \
     python3 setup.py bdist_wheel --verbose && \
