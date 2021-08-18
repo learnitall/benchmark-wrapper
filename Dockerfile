@@ -10,11 +10,14 @@ RUN dnf install --nodocs -y \
     pip3 install --no-cache-dir --upgrade \
         pip \
         setuptools \
-        wheel
+        wheel && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Install dnf dependencies needed for our packages
 RUN dnf install --nodocs -y \
-        gcc && \
+        gcc \
+        git && \
     dnf clean all
 
 # Install snafu dependencies from requirements file
