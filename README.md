@@ -5,7 +5,7 @@
 
 Benchmark-wrapper provides a convenient mechanism for launching, processing, and storing data produced by a suite of performance benchmarks. Users can run Benchmark-wrapper in a traditional bare-metal environment or with the use of [benchmark-operator](https://github.com/cloud-bulldozer/benchmark-operator) ran in a containerized environment such as Kubernetes.
 
-Documentation can be found over on [readthedocs](benchmark-wrapper.rtfd.io)
+Documentation can be found over on [readthedocs](https://benchmark-wrapper.rtfd.io)
 
 Note: If you need your benchmark to collect data for both Kubernetes and non-Kubernetes
 environments, incorporate your benchmark into benchmark-wrapper and then write a benchmark-operator benchmark to integrate with Kubernetes.
@@ -31,6 +31,14 @@ run_snafu --tool Your_Benchmark ...
 ```
 git clone https://github.com/cloud-bulldozer/benchmark-wrapper.git
 sudo pip3 install /path-to-benchmark-wrapper/benchmark-wrapper
+```
+
+If you are using a specific version of python and would like stable, reproducable builds, use the included `install.txt` files under the `requirements` directory. These are [pip requirements files](https://pip.pypa.io/en/stable/cli/pip_install/#requirements-file-format), generated using [pip-compile](https://pypi.org/project/pip-tools/), that specify version-locked dependencies for benchmark-wrapper that are tested and known to work for the given version of Python. For instance, to install on Python 3.6:
+
+```
+git clone https://github.com/cloud-bulldozer/benchmark-wrapper.git
+sudo pip3 install -r benchmark-wrapper/requirements/py36-reqs/install.txt
+sudo pip3 install ./benchmark-wrapper
 ```
 
 ## - Configure ##

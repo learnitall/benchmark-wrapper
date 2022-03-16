@@ -43,7 +43,7 @@ class trigger_sysbench:
         #  open config file
         config_file = open(self.sysbench_file, "r")
 
-        cmd = "/usr/bin/sysbench"
+        cmd = "sysbench"
         #  for each option add it to the command line
         for option in config_file:
             option = option.strip()
@@ -79,7 +79,7 @@ class trigger_sysbench:
         sysbench_result_summary = {
             "uuid": self.uuid,
             "user": self.user,
-            "clustername": self.cluster_name,
+            "cluster_name": self.cluster_name,
             "date": sample_starttime,
             "sample": self.sample,
             "test_config": self.test_config,

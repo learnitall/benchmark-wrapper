@@ -5,7 +5,7 @@ on:
     paths:
       - 'setup.cfg'
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: '0 0 1 * *'
 jobs:
   update_requirements:
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
       - name: Install tox
         run: pip install tox
       - name: Run version update
-        run: tox -e py3${{ matrix.pyver }}-requirements
+        run: tox -e py3${{ matrix.pyver }}-reqs
       - name: Save git diff
         run: |
           git diff --output diff.patch

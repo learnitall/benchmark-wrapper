@@ -7,6 +7,8 @@ import re
 import shlex
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+import numpy as np
+
 from snafu.benchmarks import Benchmark, BenchmarkResult
 from snafu.config import Config, ConfigArgument, FuncAction, check_file, none_or_type
 from snafu.process import sample_process
@@ -65,6 +67,7 @@ class UperfConfig:
     remote_ip: Optional[str] = None
     client_ips: Optional[str] = None
     service_ip: Optional[str] = None
+    service_type: Optional[str] = None
     client_node: Optional[str] = None
     server_node: Optional[str] = None
     num_pairs: Optional[str] = None
@@ -139,6 +142,7 @@ class Uperf(Benchmark):
         ConfigArgument("--remoteip", dest="remote_ip", env_var="h", default=""),
         ConfigArgument("--hostnet", dest="hostnetwork", env_var="hostnet", default="False"),
         ConfigArgument("--serviceip", dest="service_ip", env_var="serviceip", default="False"),
+        ConfigArgument("--servicetype", dest="service_type", env_var="servicetype", default=""),
         ConfigArgument("--server-node", dest="server_node", env_var="server_node", default=""),
         ConfigArgument("--client-node", dest="client_node", env_var="client_node", default=""),
         ConfigArgument("--num-pairs", dest="num_pairs", env_var="num_pairs", default=""),
@@ -156,9 +160,19 @@ class Uperf(Benchmark):
         ConfigArgument("--test-type", dest="test_type", env_var="test_type", default=""),
         ConfigArgument("--proto", dest="protocol", env_var="proto", default=""),
         ConfigArgument(
-            "--rsize", dest="read_message_size", env_var="rsize", default=None, type=none_or_type(int)
+            "--rsize",
+            dest="read_message_size",
+            env_var="rsize",
+            default=None,
+            type=none_or_type(int),
         ),
-        ConfigArgument("--wsize", dest="message_size", env_var="wsize", default=None, type=none_or_type(int)),
+        ConfigArgument(
+            "--wsize",
+            dest="message_size",
+            env_var="wsize",
+            default=None,
+            type=none_or_type(int),
+        ),
         ConfigArgument("--nthr", dest="num_threads", env_var="nthr", default=1, type=int),
         # density_range and node_range are defined and exported in the cr file
         # it will appear in ES as startvalue-endvalue, for example
@@ -229,7 +243,7 @@ class Uperf(Benchmark):
         #     timestamp, number of bytes, number of operations
         # [('1559581000962.0330', '0', '0'), ('1559581001962.8459', '4697358336', '286704') ]
         tx_str = "Txn1" if parsed_profile_name["test_type"] == "connect" else "Txn2"
-        results = re.findall(r"timestamp_ms:(.*) name:{} nr_bytes:(.*) nr_ops:(.*)".format(tx_str), stdout)
+        results = re.findall(rf"timestamp_ms:(.*) name:{tx_str} nr_bytes:(.*) nr_ops:(.*)", stdout)
         # We assume message_size=write_message_size to prevent breaking dependant implementations
 
         uperf_stdout = UperfStdout(
@@ -273,21 +287,19 @@ class Uperf(Benchmark):
             timestamp, num_bytes, ops = result.timestamp, result.bytes, result.ops
 
             norm_ops = ops - prev_ops
-            if norm_ops == 0:
-                norm_ltcy = 0.0
-            else:
+            if norm_ops != 0 and prev_timestamp != 0.0:
                 norm_ltcy = ((timestamp - prev_timestamp) / norm_ops) * 1000
 
-            datapoint = UperfStat(
-                uperf_ts=datetime.datetime.fromtimestamp(int(timestamp) / 1000).isoformat(),
-                bytes=num_bytes,
-                norm_byte=num_bytes - prev_bytes,
-                ops=ops,
-                norm_ops=norm_ops,
-                norm_ltcy=norm_ltcy,
-            )
+                datapoint = UperfStat(
+                    uperf_ts=datetime.datetime.fromtimestamp(int(timestamp) / 1000).isoformat(),
+                    bytes=num_bytes,
+                    norm_byte=num_bytes - prev_bytes,
+                    ops=ops,
+                    norm_ops=norm_ops,
+                    norm_ltcy=norm_ltcy,
+                )
 
-            processed.append(datapoint)
+                processed.append(datapoint)
             prev_timestamp, prev_bytes, prev_ops = timestamp, num_bytes, ops
 
         return processed
@@ -314,7 +326,7 @@ class Uperf(Benchmark):
         Returns immediately if a sample fails. Will attempt to Uperf run three times for each sample.
         """
 
-        cmd = shlex.split(f"uperf -v -a -R -i 1 -m {self.config.workload}")
+        cmd = shlex.split(f"uperf -v -a -R -i 1 -m {self.config.workload} -P 30000")
         _plural = "s" if self.config.sample > 1 else ""
         self.logger.info(f"Collecting {self.config.sample} sample{_plural} of Uperf")
 
@@ -339,11 +351,20 @@ class Uperf(Benchmark):
                 self.logger.critical(f"Uperf ran successfully, but didn't get stdout. Got results: {sample}")
                 return
 
+            # Only show the full output if debug is enabled
+            self.logger.debug(sample.successful.stdout)
+
             stdout: UperfStdout = self.parse_stdout(sample.successful.stdout)
             result_data: List[UperfStat] = self.get_results_from_stdout(stdout)
             config: UperfConfig = UperfConfig.new(stdout, self.config)
 
+            byte_summary = []
+            lat_summary = []
+            op_summary = []
             for result_datapoint in result_data:
+                byte_summary.append(result_datapoint.norm_byte)
+                lat_summary.append(result_datapoint.norm_ltcy)
+                op_summary.append(result_datapoint.norm_ops)
                 result_datapoint.iteration = sample_num
                 result: BenchmarkResult = self.create_new_result(
                     data=dataclasses.asdict(result_datapoint),
@@ -352,7 +373,12 @@ class Uperf(Benchmark):
                 )
                 self.logger.debug(f"Got sample result: {result}")
                 yield result
-
+            self.logger.info(f"{'-'*50}")
+            self.logger.info(f"Summary result for sample : {sample_num}")
+            self.logger.info(f"Average byte : {np.average(byte_summary)}")
+            self.logger.info(f"Average ops : {np.average(op_summary)}")
+            self.logger.info(f"95%ile Latency(ms) : {np.percentile(lat_summary,95)}")
+            self.logger.info(f"{'-'*50}")
         self.logger.info(f"Successfully collected {self.config.sample} sample{_plural} of Uperf.")
 
     @staticmethod
